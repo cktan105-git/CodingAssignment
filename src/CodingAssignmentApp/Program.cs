@@ -1,8 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
-using System.IO.Abstractions;
 using CodingAssignmentLib;
-using CodingAssignmentLib.Abstractions;
+using System.IO.Abstractions;
 
 Console.WriteLine("Coding Assignment!");
 
@@ -35,20 +34,38 @@ void Display()
     Console.WriteLine("Enter the name of the file to display its content:");
 
     var fileName = Console.ReadLine()!;
-    var fileUtility = new FileUtility(new FileSystem());
-    var dataList = Enumerable.Empty<Data>();
+    var fileSystem = new FileSystem();
 
-    if (fileUtility.GetExtension(fileName) == ".csv")
+    // Check to ensure the file exists before attempting to read it.
+    if (!fileSystem.File.Exists(fileName))
     {
-        dataList = new CsvContentParser().Parse(fileUtility.GetContent(fileName));
+        Console.WriteLine("File does not exist.");
+        return;
     }
 
-    Console.WriteLine("Data:");
-
-    foreach (var data in dataList)
+    try
     {
-        Console.WriteLine($"Key:{data.Key} Value:{data.Value}");
+        var fileUtility = new FileUtility(fileSystem);
+        
+        // Factory to create the appropriate parser based on the file extension.
+        var parser = ContentParserFactory.GetParser(fileUtility.GetExtension(fileName));
+        var dataList = parser.Parse(fileUtility.GetContent(fileName));
+
+        Console.WriteLine("Data:");
+        foreach (var data in dataList)
+        {
+            Console.WriteLine($"Key:{data.Key} Value:{data.Value}");
+        }
     }
+    catch (NotSupportedException ex)
+    {
+        Console.WriteLine(ex.Message);
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"An error occurred while reading the file: {ex.Message}");
+    }
+
 }
 
 void Search()
