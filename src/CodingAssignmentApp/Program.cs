@@ -1,7 +1,7 @@
 ﻿// See https://aka.ms/new-console-template for more information
 
 using CodingAssignmentLib;
-using CodingAssignmentLib.Abstractions;
+using CodingAssignmentLib.Services;
 using System.IO.Abstractions;
 
 Console.WriteLine("Coding Assignment!");
@@ -49,11 +49,7 @@ void Display()
         var fileUtility = new FileUtility(fileSystem);
         
         // Factory to create the appropriate parser based on the file extension.
-        var parser = TryGetParser(fileUtility.GetExtension(fileName), true);
-        if (parser == null)
-        {
-            return;
-        }
+        var parser = ContentParserFactory.GetParser(fileUtility.GetExtension(fileName));
         var dataList = parser.Parse(fileUtility.GetContent(fileName));
 
         Console.WriteLine("Data:");
@@ -78,89 +74,13 @@ void Search()
     Console.WriteLine("Enter the key to search.");
     var searchKey = Console.ReadLine()!;
 
-    if (string.IsNullOrWhiteSpace(searchKey))
+    var fileSystem = new FileSystem();
+    var searchService = new SearchService(fileSystem);
+
+    var results = searchService.Search(Path.Combine(Directory.GetCurrentDirectory(), "data"), searchKey);
+
+    foreach (var line in results)
     {
-        Console.WriteLine("Search key cannot be empty.");
-        return;
-    }
-
-    try
-    {
-        var fileSystem = new FileSystem();
-        var fileUtility = new FileUtility(fileSystem);
-
-        var basePath = Path.Combine(Directory.GetCurrentDirectory(), "data");
-        if (!fileSystem.Directory.Exists(basePath))
-        {
-            Console.WriteLine("Data directory does not exist.");
-            return;
-        }
-        var files = fileSystem.Directory.GetFiles(basePath, "*.*", SearchOption.AllDirectories);
-                              
-        var results = new List<(Data data, string path)>();
-
-        Dictionary<string, IContentParser> parsers = new Dictionary<string, IContentParser>();
-
-        foreach (var file in files)
-        {
-            var relativePath = fileSystem.Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
-            var extension = fileUtility.GetExtension(file);
-            if (!parsers.TryGetValue(extension, out var parser))
-            {
-                parser = TryGetParser(extension, false);
-                if (parser == null)
-                {
-                    continue;
-                }
-                parsers[extension] = parser;
-            }
-
-            var dataList = parser.Parse(fileUtility.GetContent(file));
-
-            foreach (var data in dataList)
-            {
-                if (data.Key != null && data.Key.StartsWith(searchKey, StringComparison.OrdinalIgnoreCase))
-                {
-                    results.Add((data, relativePath));
-                }
-            }
-        }
-
-        foreach (var (data, path) in results)
-        {
-            Console.WriteLine($"Key:{data.Key} Value:{data.Value} FileName:{path}");
-        }
-
-        if (results.Count == 0)
-        {
-            Console.WriteLine("No matching data found.");
-        }
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"An error occurred while searching: {ex.Message}");
-    }
-}
-
-/// <summary>
-/// Retrieves a content parser based on the file extension.
-/// </summary>
-/// <param name="extension">The file extension to determine the parser.</param>
-/// <param name="displayErrorMessage">Whether to display an error message if the parser cannot be created.</param>
-/// <returns>An instance of <see cref="IContentParser"/> or null if the parser cannot be created.</returns>
-IContentParser TryGetParser(string extension, bool displayErrorMessage = false)
-{
-    try
-    {
-        return ContentParserFactory.GetParser(extension);
-    }
-    catch (Exception ex)
-    {
-        if (displayErrorMessage)
-        {
-            Console.WriteLine(ex.Message);
-        }
-
-        return null!;
+        Console.WriteLine(line);
     }
 }
