@@ -49,7 +49,11 @@ void Display()
         var fileUtility = new FileUtility(fileSystem);
         
         // Factory to create the appropriate parser based on the file extension.
-        var parser = ContentParserFactory.GetParser(fileUtility.GetExtension(fileName));
+        var parser = TryGetParser(fileUtility.GetExtension(fileName), true);
+        if (parser == null)
+        {
+            return;
+        }
         var dataList = parser.Parse(fileUtility.GetContent(fileName));
 
         Console.WriteLine("Data:");
