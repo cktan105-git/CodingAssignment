@@ -103,6 +103,7 @@ void Search()
 
         foreach (var file in files)
         {
+            var relativePath = fileSystem.Path.GetRelativePath(Directory.GetCurrentDirectory(), file);
             var extension = fileUtility.GetExtension(file);
             if (!parsers.TryGetValue(extension, out var parser))
             {
@@ -120,7 +121,7 @@ void Search()
             {
                 if (data.Key != null && data.Key.StartsWith(searchKey, StringComparison.OrdinalIgnoreCase))
                 {
-                    results.Add((data, file));
+                    results.Add((data, relativePath));
                 }
             }
         }
